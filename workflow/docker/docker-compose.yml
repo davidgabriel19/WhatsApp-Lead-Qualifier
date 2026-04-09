@@ -1,0 +1,72 @@
+# Local development stack for the n8n workflow.
+#
+# Brings up:
+#   * postgres    — persistence backend for n8n
+#   * n8n         — the workflow engine
+#
+# Usage:
+#   cp ../.env.example ../.env   # fill in secrets
+#   docker compose up -d
+#
+# Open http://localhost:5678 and import workflows/whatsapp-lead-qualifier.json
+# from the n8n UI. Set the n8n environment variables (QUALIFIER_API_URL,
+# QUALIFIER_API_KEY, TWILIO_ACCOUNT_SID, WHATSAPP_FROM_NUMBER) under
+# Settings → Variables.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-n8n}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+      POSTGRES_DB: ${POSTGRES_DB:-n8n}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-n8n}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5678:5678"
+    environment:
+      # --- Database ---
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB:-n8n}
+      DB_POSTGRESDB_USER: ${POSTGRES_USER:-n8n}
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+
+      # --- n8n auth ---
+      N8N_BASIC_AUTH_ACTIVE: "true"
+      N8N_BASIC_AUTH_USER: ${N8N_BASIC_AUTH_USER:-admin}
+      N8N_BASIC_AUTH_PASSWORD: ${N8N_BASIC_AUTH_PASSWORD:-change-me}
+
+      # --- Public URL ---
+      # When deploying behind a reverse proxy, set WEBHOOK_URL to the
+      # public URL so that webhook nodes emit correct callback links.
+      N8N_HOST: ${N8N_HOST:-localhost}
+      N8N_PORT: 5678
+      N8N_PROTOCOL: ${N8N_PROTOCOL:-http}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+
+      # --- Workflow variables consumed by whatsapp-lead-qualifier.json ---
+      QUALIFIER_API_URL: ${QUALIFIER_API_URL}
+      QUALIFIER_API_KEY: ${QUALIFIER_API_KEY}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      WHATSAPP_FROM_NUMBER: ${WHATSAPP_FROM_NUMBER}
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+volumes:
+  postgres_data:
+  n8n_data:

@@ -1,0 +1,53 @@
+[
+  {
+    "code": "SAMPLE-001",
+    "title": "Sample Item A — Premium Edition",
+    "category": "category-one",
+    "price": "$1,200.00",
+    "location": "Sample City",
+    "attributes": {
+      "size": "large",
+      "color": "blue",
+      "highlight": "limited edition"
+    },
+    "description": "Example item illustrating the catalog structure. Replace the entries in this file with your real domain data.",
+    "link": "https://example.com/items/sample-001"
+  },
+  {
+    "code": "SAMPLE-002",
+    "title": "Sample Item B — Standard",
+    "category": "category-one",
+    "price": "$450.00",
+    "location": "Sample City",
+    "attributes": {
+      "size": "medium",
+      "color": "red"
+    },
+    "description": "Second example item. Keys are free-form; the model is instructed to use whatever is present.",
+    "link": "https://example.com/items/sample-002"
+  },
+  {
+    "code": "SAMPLE-003",
+    "title": "Sample Item C — Budget",
+    "category": "category-two",
+    "price": "$89.90",
+    "location": "Another City",
+    "attributes": {
+      "size": "small"
+    },
+    "description": "Third example item, in a different category and location, useful to test filters.",
+    "link": "https://example.com/items/sample-003"
+  },
+  {
+    "code": "SAMPLE-004",
+    "title": "Sample Item D — Enterprise",
+    "category": "category-three",
+    "price": "$15,000.00",
+    "location": "Another City",
+    "attributes": {
+      "highlight": "high ticket"
+    },
+    "description": "Example of a high-ticket item to exercise the qualification flow with larger budgets.",
+    "link": "https://example.com/items/sample-004"
+  }
+]

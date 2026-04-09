@@ -1,0 +1,110 @@
+# =============================================================================
+# Scraper configuration template
+# =============================================================================
+# This file drives scraper.py. Every selector is site-specific — the values
+# below are just illustrative examples. To scrape a new site:
+#
+#   1. Inspect the listing pages in your browser's devtools.
+#   2. Identify the selector that matches each listing "card".
+#   3. Identify the selectors for each field you want to extract.
+#   4. (Optional) Do the same for the detail page if you want more fields.
+#   5. Run: python scraper.py --config your-config.yaml --output output/catalog.json
+#
+# Replace example.com with the site you have permission to scrape. Respect
+# robots.txt and the site's terms of service.
+# =============================================================================
+
+base_url: "https://example.com"
+
+# One entry per listing page to scrape. You can mix categories, cities,
+# filters — each entry runs independently and gets tagged with its `name`.
+targets:
+  - name: "category-one-cityA"
+    url: "https://example.com/listings/category-one/cityA"
+  - name: "category-one-cityB"
+    url: "https://example.com/listings/category-one/cityB"
+
+# Browser / timing
+headless: true
+page_timeout_ms: 60000
+nav_timeout_ms: 90000
+scroll_max_attempts: 10
+scroll_wait_ms: 4000
+delay_between_items_seconds: 1.0
+delay_between_targets_seconds: 3.0
+
+# Cookie-consent popups to dismiss. Try the buttons in order.
+cookie_consent_selectors:
+  - 'button:has-text("Accept")'
+  - 'button:has-text("Agree")'
+  - 'button#onetrust-accept-btn-handler'
+
+# "Load more" buttons for sites that use click-to-paginate instead of
+# infinite scroll. Leave empty if the site uses only infinite scroll.
+load_more_selectors:
+  - 'button:has-text("Load more")'
+  - 'button.load-more'
+
+# Selectors for the listing cards. The scraper tries each in order and uses
+# the first one that yields results.
+card_selectors:
+  - 'article[class*="card"]'
+  - 'div[class*="listing-card"]'
+  - 'li.listing-item'
+
+# Selectors for the link from a card to its detail page. Used when the card
+# itself isn't an <a>.
+detail_link_selectors:
+  - 'a[href*="/item/"]'
+  - 'a.details-link'
+
+# Fields to extract from each card.
+#
+# A field can be defined in three ways:
+#
+#   1. A single CSS selector as a string:
+#        title: 'h2.title'
+#
+#   2. A list of CSS selectors (first match wins):
+#        title:
+#          - 'h2.title'
+#          - '.card-title'
+#
+#   3. A full object with CSS, regex fallback, and optional value casting:
+#        price:
+#          css:
+#            - '.price'
+#            - '[class*="value"]'
+#          regex: '\$\s*([\d.,]+)'
+#          cast: clean_number
+#          default: 'N/A'
+#
+# Supported cast values: int, float, clean_number
+card_fields:
+  title:
+    - 'h2.title'
+    - 'h3.card-title'
+    - '.listing-title'
+  price:
+    css:
+      - '.price'
+      - '[class*="value"]'
+    regex: '\$\s*([\d.,]+)'
+    cast: clean_number
+  code:
+    regex: 'Code[:\s]*(\w+)'
+
+# Fields to extract from each detail page (optional). Leave empty to skip
+# visiting detail pages at all.
+detail_fields:
+  description:
+    - '.description'
+    - '#item-description'
+  size:
+    css:
+      - '.size-info'
+    regex: '(\d+)\s*sqft'
+    cast: int
+  location:
+    - '.address'
+    - '.location'

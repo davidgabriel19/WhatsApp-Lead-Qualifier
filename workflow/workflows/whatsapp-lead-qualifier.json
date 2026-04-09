@@ -1,0 +1,233 @@
+{
+  "name": "WhatsApp Lead Qualifier",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "incoming-message",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "name": "Incoming Message Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-480, 40],
+      "id": "node-incoming-webhook",
+      "webhookId": "incoming-message-webhook",
+      "notes": "Configure this URL in your WhatsApp provider (e.g. Twilio Sandbox) as the message webhook."
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "={{ $json[\"body\"][\"Body\"] }}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $json[\"body\"][\"From\"].replace(\"whatsapp:+\", \"\") }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [-320, 40],
+      "id": "node-extract-message",
+      "notes": "Adapt the field paths to match your WhatsApp provider payload."
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $env.QUALIFIER_API_URL }}/chat",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n  \"message\": \"{{ $json[\"message\"] }}\",\n  \"user_id\": \"{{ $json[\"user_id\"] }}\",\n  \"api_key\": \"{{ $env.QUALIFIER_API_KEY }}\"\n}"
+      },
+      "name": "Call Qualifier API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [-160, 100],
+      "id": "node-call-qualifier",
+      "retryOnFail": true,
+      "waitBetweenTries": 2000,
+      "notes": "QUALIFIER_API_URL and QUALIFIER_API_KEY must be set as n8n environment variables."
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "name": "Merge Context",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.1,
+      "position": [0, 0],
+      "id": "node-merge"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "assign-to",
+              "name": "to",
+              "value": "=whatsapp:+{{ $json[\"user_id\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-from",
+              "name": "from",
+              "value": "={{ $env.WHATSAPP_FROM_NUMBER }}",
+              "type": "string"
+            },
+            {
+              "id": "assign-body",
+              "name": "body",
+              "value": "={{ $json[\"reply\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Prepare Reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [160, 0],
+      "id": "node-prepare-reply"
+    },
+    {
+      "parameters": {
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "requestMethod": "POST",
+        "url": "=https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "To",
+              "value": "={{ $json[\"to\"] }}"
+            },
+            {
+              "name": "From",
+              "value": "={{ $json[\"from\"] }}"
+            },
+            {
+              "name": "Body",
+              "value": "={{ $json[\"body\"] }}"
+            }
+          ]
+        },
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        }
+      },
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 2,
+      "position": [360, 140],
+      "id": "node-send-reply",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 2,
+      "notes": "Configure HTTP Basic Auth in n8n credentials using your Twilio Account SID and Auth Token."
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-handoff",
+        "options": {}
+      },
+      "name": "Handoff Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [-480, 280],
+      "id": "node-handoff-webhook",
+      "webhookId": "lead-handoff-webhook",
+      "notes": "Set LEAD_HANDOFF_WEBHOOK_URL in the API .env to the full URL of this webhook."
+    },
+    {
+      "parameters": {
+        "amount": 8
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [-280, 280],
+      "id": "node-wait",
+      "name": "Wait Before Handoff",
+      "webhookId": "wait-before-handoff",
+      "notes": "Small delay so the user receives the final assistant reply before the agent is notified."
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "to",
+              "value": "={{ $json[\"body\"][\"to\"] }}"
+            },
+            {
+              "name": "body",
+              "value": "={{ $json[\"body\"][\"body\"] }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Prepare Handoff",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 2,
+      "position": [-80, 280],
+      "id": "node-prepare-handoff"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Incoming Message Webhook": {
+      "main": [[{ "node": "Extract Message", "type": "main", "index": 0 }]]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          { "node": "Merge Context", "type": "main", "index": 0 },
+          { "node": "Call Qualifier API", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Call Qualifier API": {
+      "main": [[{ "node": "Merge Context", "type": "main", "index": 1 }]]
+    },
+    "Merge Context": {
+      "main": [[{ "node": "Prepare Reply", "type": "main", "index": 0 }]]
+    },
+    "Prepare Reply": {
+      "main": [[{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]]
+    },
+    "Handoff Webhook": {
+      "main": [[{ "node": "Wait Before Handoff", "type": "main", "index": 0 }]]
+    },
+    "Wait Before Handoff": {
+      "main": [[{ "node": "Prepare Handoff", "type": "main", "index": 0 }]]
+    },
+    "Prepare Handoff": {
+      "main": [[{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}
